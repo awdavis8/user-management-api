@@ -29,10 +29,13 @@ namespace UserManagementAPI.Services
         }
 
         /// <inheritdoc />
-        public async Task<UserResponseDto?> GetUserByIdAsync(int id)
+        public async Task<Result<UserResponseDto>> GetUserByIdAsync(int id)
         {
             var user = await _context.Users.FindAsync(id);
-            return user is null ? null : UserMapper.ToResponseDto(user);
+            if (user is null)
+                return Result<UserResponseDto>.Failure("User not found.");
+
+            return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
         }
 
         /// <inheritdoc />

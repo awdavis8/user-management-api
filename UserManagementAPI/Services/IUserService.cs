@@ -18,8 +18,8 @@ namespace UserManagementAPI.Services
         /// Retrieves a user by their unique identifier.
         /// </summary>
         /// <param name="id">The user's unique identifier.</param>
-        /// <returns>A UserResponseDto if found; otherwise, null.</returns>
-        Task<UserResponseDto?> GetUserByIdAsync(int id);
+        /// <returns>A Result containing the UserResponseDto if found, or a failure message if not.</returns>
+        Task<Result<UserResponseDto>> GetUserByIdAsync(int id);
 
         /// <summary>
         /// Validates and creates a new user.
