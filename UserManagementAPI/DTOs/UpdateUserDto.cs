@@ -8,17 +8,12 @@ namespace UserManagementAPI.DTOs
     public class UpdateUserDto
     {
         /// <summary>The user's full name. Maximum 100 characters.</summary>
-        [Required]
-        [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>The user's email address. Must be a valid email format.</summary>
-        [Required]
-        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        /// <summary>The user's date of birth.</summary>
-        [Required]
+        /// <summary>The user's date of birth. The user must be at least 18 years of age.</summary>
         public DateTime DateOfBirth { get; set; }
     }
 }
