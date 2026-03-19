@@ -1,4 +1,5 @@
 using UserManagementAPI.DTOs;
+using UserManagementAPI.Models;
 
 namespace UserManagementAPI.Services
 {
@@ -21,19 +22,19 @@ namespace UserManagementAPI.Services
         Task<UserResponseDto?> GetUserByIdAsync(int id);
 
         /// <summary>
-        /// Creates a new user.
+        /// Validates and creates a new user.
         /// </summary>
         /// <param name="dto">The data for the new user.</param>
-        /// <returns>A UserResponseDto representing the created user.</returns>
-        Task<UserResponseDto> CreateUserAsync(CreateUserDto dto);
+        /// <returns>A Result containing the created UserResponseDto, or a validation failure.</returns>
+        Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto);
 
         /// <summary>
-        /// Updates an existing user.
+        /// Validates and updates an existing user.
         /// </summary>
         /// <param name="id">The unique identifier of the user to update.</param>
         /// <param name="dto">The updated user data.</param>
-        /// <returns>A UserResponseDto if found and updated; otherwise, null.</returns>
-        Task<UserResponseDto?> UpdateUserAsync(int id, UpdateUserDto dto);
+        /// <returns>A Result containing the updated UserResponseDto, or a validation/not-found failure.</returns>
+        Task<Result<UserResponseDto>> UpdateUserAsync(int id, UpdateUserDto dto);
 
         /// <summary>
         /// Deletes a user by their unique identifier.
