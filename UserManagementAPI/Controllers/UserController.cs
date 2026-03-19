@@ -44,7 +44,7 @@ namespace UserManagementAPI.Controllers
         {
             var result = await _userService.CreateUserAsync(dto);
             if (result.IsFailure)
-                return BadRequest(new { result.Error });
+                return BadRequest(new ProblemDetails { Detail = result.Error });
 
             return CreatedAtAction(nameof(GetUsers), result.Value);
         }
@@ -59,7 +59,7 @@ namespace UserManagementAPI.Controllers
         {
             var result = await _userService.GetUserByIdAsync(id);
             if (result.IsFailure)
-                return NotFound(new { result.Error });
+                return NotFound(new ProblemDetails { Detail = result.Error });
 
             return Ok(result.Value);
         }
@@ -74,7 +74,7 @@ namespace UserManagementAPI.Controllers
         {
             var result = await _userService.DeleteUserAsync(id);
             if (result.IsFailure)
-                return NotFound(new { result.Error });
+                return NotFound(new ProblemDetails { Detail = result.Error });
 
             return NoContent();
         }
@@ -92,8 +92,8 @@ namespace UserManagementAPI.Controllers
             if (result.IsFailure)
             {
                 if (result.Error == "User not found.")
-                    return NotFound(new { result.Error });
-                return BadRequest(new { result.Error });
+                    return NotFound(new ProblemDetails { Detail = result.Error });
+                return BadRequest(new ProblemDetails { Detail = result.Error });
             }
 
             return Ok(result.Value);
