@@ -41,9 +41,9 @@ namespace UserManagementAPI.Services
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto)
         {
-            var validation = ValidateCreateUser(dto);
-            if (validation.IsFailure)
-                return Result<UserResponseDto>.Failure(validation.Error);
+            var age = GetAge(dto.DateOfBirth!.Value);
+            if (age < 18)
+                return Result<UserResponseDto>.Failure("User must be at least 18 years of age.");
 
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return Result<UserResponseDto>.Failure("A user with this email address already exists.");
@@ -58,9 +58,9 @@ namespace UserManagementAPI.Services
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> UpdateUserAsync(int id, UpdateUserDto dto)
         {
-            var validation = ValidateUpdateUser(dto);
-            if (validation.IsFailure)
-                return Result<UserResponseDto>.Failure(validation.Error);
+            var age = GetAge(dto.DateOfBirth!.Value);
+            if (age < 18)
+                return Result<UserResponseDto>.Failure("User must be at least 18 years of age.");
 
             var user = await _context.Users.FindAsync(id);
             if (user is null)
@@ -90,64 +90,6 @@ namespace UserManagementAPI.Services
         }
 
         /// <summary>
-        /// Validates the fields of a <see cref="CreateUserDto"/>.
-        /// </summary>
-        /// <param name="dto">The DTO to validate.</param>
-        /// <returns>A successful Result if valid; otherwise, a failure Result with an error message.</returns>
-        private static Result ValidateCreateUser(CreateUserDto dto)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Name))
-                return Result.Failure("Name is required.");
-
-            if (dto.Name.Length > 100)
-                return Result.Failure("Name must not exceed 100 characters.");
-
-            if (string.IsNullOrWhiteSpace(dto.Email))
-                return Result.Failure("Email is required.");
-
-            if (!IsValidEmail(dto.Email))
-                return Result.Failure("Email must be a valid email address.");
-
-            if (dto.DateOfBirth == default || dto.DateOfBirth == DateTime.MinValue)
-                return Result.Failure("Date of birth is required.");
-
-            var age = GetAge(dto.DateOfBirth);
-            if (age < 18)
-                return Result.Failure("User must be at least 18 years of age.");
-
-            return Result.Success();
-        }
-
-        /// <summary>
-        /// Validates the fields of an UpdateUserDTO.
-        /// </summary>
-        /// <param name="dto">The DTO to validate.</param>
-        /// <returns>A successful Result if valid; otherwise, a failure Result with an error message.</returns>
-        private static Result ValidateUpdateUser(UpdateUserDto dto)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Name))
-                return Result.Failure("Name is required.");
-
-            if (dto.Name.Length > 100)
-                return Result.Failure("Name must not exceed 100 characters.");
-
-            if (string.IsNullOrWhiteSpace(dto.Email))
-                return Result.Failure("Email is required.");
-
-            if (!IsValidEmail(dto.Email))
-                return Result.Failure("Email must be a valid email address.");
-
-            if (dto.DateOfBirth == default || dto.DateOfBirth == DateTime.MinValue)
-                return Result.Failure("Date of birth is required.");
-
-            var age = GetAge(dto.DateOfBirth);
-            if (age < 18)
-                return Result.Failure("User must be at least 18 years of age.");
-
-            return Result.Success();
-        }
-
-        /// <summary>
         /// Calculates a person's age in whole years from their date of birth.
         /// </summary>
         /// <param name="dateOfBirth">The date of birth.</param>
@@ -159,24 +101,6 @@ namespace UserManagementAPI.Services
             if (dateOfBirth.Date > today.AddYears(-age).Date)
                 age--;
             return age;
-        }
-
-        /// <summary>
-        /// Determines whether the specified string is a valid email address.
-        /// </summary>
-        /// <param name="email">The email address to validate.</param>
-        /// <returns>true if the email is valid; otherwise, false.</returns>
-        private static bool IsValidEmail(string email)
-        {
-            try
-            {
-                var address = new MailAddress(email);
-                return address.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }

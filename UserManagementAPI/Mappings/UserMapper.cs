@@ -43,7 +43,7 @@ namespace UserManagementAPI.Mappings
         /// <returns>A new User entity.</returns>
         public static User ToModel(CreateUserDto dto)
         {
-            return new User(dto.Name, dto.Email, dto.DateOfBirth);
+            return new User(dto.Name, dto.Email, dto.DateOfBirth!.Value);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace UserManagementAPI.Mappings
         {
             user.Name = dto.Name;
             user.Email = dto.Email;
-            user.DateOfBirth = dto.DateOfBirth;
+            user.DateOfBirth = dto.DateOfBirth!.Value;
             user.UpdatedAt = DateTime.UtcNow;
         }
     }
