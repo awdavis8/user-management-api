@@ -56,13 +56,25 @@ namespace UserManagementAPI.Services
         }
 
         /// <inheritdoc />
-        public Task<Result<UserResponseDto>> UpdateUserAsync(int id, UpdateUserDto dto)
+        public async Task<Result<UserResponseDto>> UpdateUserAsync(int id, UpdateUserDto dto)
         {
             var validation = ValidateUpdateUser(dto);
             if (validation.IsFailure)
-                return Task.FromResult(Result<UserResponseDto>.Failure(validation.Error));
+                return Result<UserResponseDto>.Failure(validation.Error);
 
-            throw new NotImplementedException();
+            var user = await _context.Users.FindAsync(id);
+            if (user is null)
+                return Result<UserResponseDto>.Failure("User not found.");
+
+            // Check for email uniqueness (excluding current user)
+            if (await _context.Users.AnyAsync(u => u.Email == dto.Email && u.Id != id))
+                return Result<UserResponseDto>.Failure("A user with this email address already exists.");
+
+            UserMapper.ApplyUpdate(dto, user);
+
+            await _context.SaveChangesAsync();
+
+            return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
         }
 
         /// <inheritdoc />
