@@ -40,14 +40,7 @@ namespace UserManagementAPI.Services
         /// Deletes a user by their unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier of the user to delete.</param>
-        /// <returns>True if the user was deleted; false if not found.</returns>
-        Task<bool> DeleteUserAsync(int id);
-
-        /// <summary>
-        /// Checks whether a user with the specified email address already exists.
-        /// </summary>
-        /// <param name="email">The email address to check.</param>
-        /// <returns>True if the email exists; otherwise, false.</returns>
-        Task<bool> EmailExistsAsync(string email);
+        /// <returns>A Result to indicate success/failure in deletion.</returns>
+        Task<Result> DeleteUserAsync(int id);
     }
 }
