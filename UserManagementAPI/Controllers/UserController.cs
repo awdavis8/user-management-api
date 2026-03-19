@@ -78,5 +78,25 @@ namespace UserManagementAPI.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Updates an existing user by their unique identifier.
+        /// </summary>
+        /// <param name="id">The user's unique identifier.</param>
+        /// <param name="dto">The updated user data.</param>
+        /// <returns>A 200 OK response with the updated user, or a 400/404 with an error message.</returns>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<UserResponseDto>> UpdateUser(int id, UpdateUserDto dto)
+        {
+            var result = await _userService.UpdateUserAsync(id, dto);
+            if (result.IsFailure)
+            {
+                if (result.Error == "User not found.")
+                    return NotFound(new { result.Error });
+                return BadRequest(new { result.Error });
+            }
+
+            return Ok(result.Value);
+        }
     }
 }
