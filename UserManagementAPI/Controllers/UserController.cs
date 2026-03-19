@@ -48,5 +48,20 @@ namespace UserManagementAPI.Controllers
 
             return CreatedAtAction(nameof(GetUsers), result.Value);
         }
+
+        /// <summary>
+        /// Retrieves a user by their unique identifier.
+        /// </summary>
+        /// <param name="id">The user's unique identifier.</param>
+        /// <returns>A 200 OK response with the user if found, or a 404 Not Found with an error message.</returns>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserResponseDto>> GetUserById(int id)
+        {
+            var result = await _userService.GetUserByIdAsync(id);
+            if (result.IsFailure)
+                return NotFound(new { result.Error });
+
+            return Ok(result.Value);
+        }
     }
 }
