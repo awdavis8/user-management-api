@@ -66,15 +66,15 @@ namespace UserManagementAPI.Services
         }
 
         /// <inheritdoc />
-        public Task<bool> DeleteUserAsync(int id)
+        public async Task<Result> DeleteUserAsync(int id)
         {
-            throw new NotImplementedException();
-        }
+            var user = await _context.Users.FindAsync(id);
+            if (user is null)
+                return Result.Failure("User not found.");
 
-        /// <inheritdoc />
-        public Task<bool> EmailExistsAsync(string email)
-        {
-            throw new NotImplementedException();
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return Result.Success();
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace UserManagementAPI.Services
         }
 
         /// <summary>
-        /// Validates the fields of an <see cref="UpdateUserDto"/>.
+        /// Validates the fields of an UpdateUserDTO.
         /// </summary>
         /// <param name="dto">The DTO to validate.</param>
         /// <returns>A successful Result if valid; otherwise, a failure Result with an error message.</returns>

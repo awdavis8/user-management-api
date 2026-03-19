@@ -63,5 +63,20 @@ namespace UserManagementAPI.Controllers
 
             return Ok(result.Value);
         }
+
+        /// <summary>
+        /// Deletes a user by their unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user to delete.</param>
+        /// <returns>A Result indicating success or failure with an error message.</returns>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteUser(int id)
+        {
+            var result = await _userService.DeleteUserAsync(id);
+            if (result.IsFailure)
+                return NotFound(new { result.Error });
+
+            return NoContent();
+        }
     }
 }
