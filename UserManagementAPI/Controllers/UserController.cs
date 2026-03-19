@@ -23,15 +23,35 @@ namespace UserManagementAPI.Controllers
         }
 
         /// <summary>
-        /// TODO: Add pagenation and filtering parameters to this endpoint.
-        /// Retrieves all users.
+        /// Retrieves pagenated users, or all users if pagination parameters are not provided. 
+        /// Supports sorting by name, email, or age in ascending or descending order.
         /// </summary>
+        /// <param name="page">The page number for pagination.</param>
+        /// <param name="pageSize">The number of users per page for pagination.</param>
+        /// <param name="sortBy">The property to sort the users by.</param>
+        /// <param name="sortOrder">The order of sorting (ascending or descending).</param>
         /// <returns>A 200 OK response containing a list of users.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers(
+            int? page = null,
+            int? pageSize = null,
+            string? sortBy = null,
+            string? sortOrder = null)
         {
-            var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
+            // Validate sortOrder
+            if (!string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() != "asc" && sortOrder.ToLower() != "desc")
+                return BadRequest(new ProblemDetails { Detail = "Invalid sortOrder. Must be 'asc' or 'desc'." });
+
+            // Validate sortBy
+            if (!string.IsNullOrEmpty(sortBy) &&
+                sortBy.ToLower() != "email" &&
+                sortBy.ToLower() != "name" &&
+                sortBy.ToLower() != "age")
+                return BadRequest(new ProblemDetails { Detail = "Invalid sortBy. Must be 'name', 'email', or 'age'." });
+
+            var result = await _userService.GetUsersAsync(page, pageSize, sortBy, sortOrder);
+
+            return Ok(result);
         }
 
         /// <summary>

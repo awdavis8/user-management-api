@@ -102,5 +102,45 @@ namespace UserManagementAPI.Services
                 age--;
             return age;
         }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<UserResponseDto>> GetUsersAsync(
+            int? page, int? pageSize, string? sortBy, string? sortOrder)
+        {
+            var usersQuery = _context.Users.AsQueryable();
+
+            // Sorting
+            if (!string.IsNullOrEmpty(sortBy))
+            {
+                var order = sortOrder?.ToLower() ?? "asc";
+                switch (sortBy.ToLower())
+                {
+                    case "email":
+                        usersQuery = order == "desc"
+                            ? usersQuery.OrderByDescending(u => u.Email)
+                            : usersQuery.OrderBy(u => u.Email);
+                        break;
+                    case "name":
+                        usersQuery = order == "desc"
+                            ? usersQuery.OrderByDescending(u => u.Name)
+                            : usersQuery.OrderBy(u => u.Name);
+                        break;
+                    case "age":
+                        usersQuery = order == "desc"
+                            ? usersQuery.OrderByDescending(u => u.DateOfBirth)
+                            : usersQuery.OrderBy(u => u.DateOfBirth);
+                        break;
+                }
+            }
+
+            // Pagination
+            if (page.HasValue && pageSize.HasValue)
+            {
+                usersQuery = usersQuery.Skip((page.Value - 1) * pageSize.Value).Take(pageSize.Value);
+            }
+
+            var users = await usersQuery.ToListAsync();
+            return UserMapper.ToResponseDtos(users);
+        }
     }
 }
