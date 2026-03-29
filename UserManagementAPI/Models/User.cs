@@ -30,19 +30,5 @@ namespace UserManagementAPI.Models
         /// <summary>The UTC timestamp when the user was last updated.</summary>
         public DateTime UpdatedAt { get; set; }
 
-        /// <summary>
-        /// Initializes a new User instance with timestamps set to the current UTC time.
-        /// </summary>
-        /// <param name="name">The user's full name.</param>
-        /// <param name="email">The user's email address.</param>
-        /// <param name="dateOfBirth">The user's date of birth.</param>
-        public User(string name, string email, DateTime dateOfBirth)
-        {
-            Name = name;
-            Email = email;
-            DateOfBirth = dateOfBirth;
-            CreatedAt = DateTime.UtcNow;
-            UpdatedAt = DateTime.UtcNow;
-        }
     }
 }
