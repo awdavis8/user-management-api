@@ -23,7 +23,7 @@ namespace UserManagementAPI.Controllers
         }
 
         /// <summary>
-        /// Retrieves pagenated users, or all users if pagination parameters are not provided. 
+        /// Retrieves paginated users, or the first page of users (size 10) if pagination parameters are not provided.
         /// Supports sorting by name, email, or age in ascending or descending order.
         /// </summary>
         /// <param name="page">The page number for pagination.</param>
@@ -32,24 +32,18 @@ namespace UserManagementAPI.Controllers
         /// <param name="sortOrder">The order of sorting (ascending or descending).</param>
         /// <returns>A 200 OK response containing a list of users.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers(
-            int? page = null,
-            int? pageSize = null,
-            string? sortBy = null,
-            string? sortOrder = null)
+        public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers([FromQuery] PaginationParamsDto pagenationParams)
         {
-            // Validate sortOrder
-            if (!string.IsNullOrEmpty(sortOrder) && sortOrder.ToLower() != "asc" && sortOrder.ToLower() != "desc")
-                return BadRequest(new ProblemDetails { Detail = "Invalid sortOrder. Must be 'asc' or 'desc'." });
+            // Validate ModelState for DTO validation errors
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            // Validate sortBy
-            if (!string.IsNullOrEmpty(sortBy) &&
-                sortBy.ToLower() != "email" &&
-                sortBy.ToLower() != "name" &&
-                sortBy.ToLower() != "age")
-                return BadRequest(new ProblemDetails { Detail = "Invalid sortBy. Must be 'name', 'email', or 'age'." });
-
-            var result = await _userService.GetUsersAsync(page, pageSize, sortBy, sortOrder);
+            var result = await _userService.GetUsersAsync(
+                pagenationParams.Page,
+                pagenationParams.PageSize,
+                pagenationParams.SortBy,
+                pagenationParams.SortOrder
+            );
 
             return Ok(result);
         }
