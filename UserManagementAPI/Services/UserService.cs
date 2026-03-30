@@ -4,6 +4,7 @@ using UserManagementAPI.Data;
 using UserManagementAPI.DTOs;
 using UserManagementAPI.Mappings;
 using UserManagementAPI.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace UserManagementAPI.Services
 {
@@ -22,18 +23,17 @@ namespace UserManagementAPI.Services
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync()
-        {
-            var users = await _userRepository.GetAllAsync();
-            return UserMapper.ToResponseDtos(users);
-        }
-
-        /// <inheritdoc />
         public async Task<Result<UserResponseDto>> GetUserByIdAsync(int id)
         {
             var user = await _userRepository.GetByIdAsync(id);
             if (user is null)
-                return Result<UserResponseDto>.Failure("User not found.");
+            {
+                var errors = new Dictionary<string, string[]>
+                {
+                    { "Id", ["User not found."] }
+                };
+                return Result<UserResponseDto>.Failure(errors);
+            }
 
             return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
         }
@@ -41,16 +41,22 @@ namespace UserManagementAPI.Services
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto)
         {
+            var errors = new Dictionary<string, string[]>();
+
+            // Email uniqueness
+            if (await _userRepository.EmailExistsAsync(dto.Email))
+                errors["Email"] = ["A user with this email address already exists."];
+
+            // Age validation
             var age = GetAge(dto.DateOfBirth!.Value);
             if (age < 18)
-                return Result<UserResponseDto>.Failure("User must be at least 18 years of age.");
+                errors["DateOfBirth"] = ["User must be at least 18 years of age."];
 
-            if (await _userRepository.EmailExistsAsync(dto.Email))
-                return Result<UserResponseDto>.Failure("A user with this email address already exists.");
+            if (errors.Count > 0)
+                return Result<UserResponseDto>.Failure(errors);
 
             var user = UserMapper.ToModel(dto);
             await _userRepository.AddAsync(user);
-            await _userRepository.SaveChangesAsync();
 
             return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
         }
@@ -58,23 +64,27 @@ namespace UserManagementAPI.Services
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> UpdateUserAsync(int id, UpdateUserDto dto)
         {
+            var errors = new Dictionary<string, string[]>();
+
+            // Email uniqueness
+            if (await _userRepository.EmailExistsAsync(dto.Email, id))
+                errors["Email"] = ["A user with this email address already exists."];
+
+            // Age validation
             var age = GetAge(dto.DateOfBirth!.Value);
             if (age < 18)
-                return Result<UserResponseDto>.Failure("User must be at least 18 years of age.");
+                errors["DateOfBirth"] = ["User must be at least 18 years of age."];
 
             var user = await _userRepository.GetByIdAsync(id);
             if (user is null)
-                return Result<UserResponseDto>.Failure("User not found.");
+                errors["Id"] = ["User not found."];
 
-            // Check for email uniqueness (excluding current user)
-            if (await _userRepository.EmailExistsAsync(dto.Email, id))
-                return Result<UserResponseDto>.Failure("A user with this email address already exists.");
+            if (errors.Count > 0)
+                return Result<UserResponseDto>.Failure(errors);
 
-            UserMapper.ApplyUpdate(dto, user);
+            UserMapper.ApplyUpdate(dto, user!);
 
-            await _userRepository.SaveChangesAsync();
-
-            return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
+            return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user!));
         }
 
         /// <inheritdoc />
@@ -82,11 +92,15 @@ namespace UserManagementAPI.Services
         {
             var user = await _userRepository.GetByIdAsync(id);
             if (user is null)
-                return Result.Failure("User not found.");
+            {
+                var errors = new Dictionary<string, string[]>
+                {
+                    { "Id", ["User not found."] }
+                };
+                return Result.Failure(errors);
+            }
 
-            // Assuming you add a Remove method to the repository:
             await _userRepository.RemoveAsync(user);
-            await _userRepository.SaveChangesAsync();
             return Result.Success();
         }
 

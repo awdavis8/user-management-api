@@ -43,7 +43,7 @@ namespace UserManagementAPI.Tests.ServiceTests
 
             var result = await _service.CreateUserAsync(dto);
 
-            Assert.True(result.IsSuccess);
+            Assert.False(result.IsFailure);
             Assert.NotNull(result.Value);
             Assert.Equal(dto.Name, result.Value.Name);
             Assert.Equal(dto.Email, result.Value.Email);
@@ -63,7 +63,9 @@ namespace UserManagementAPI.Tests.ServiceTests
             var result = await _service.CreateUserAsync(dto);
 
             Assert.True(result.IsFailure);
-            Assert.Equal("User must be at least 18 years of age.", result.Error);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("DateOfBirth"));
+            Assert.Contains("User must be at least 18 years of age.", result.Errors["DateOfBirth"]);
         }
 
         [Fact]
@@ -81,7 +83,9 @@ namespace UserManagementAPI.Tests.ServiceTests
             var result = await _service.CreateUserAsync(dto);
 
             Assert.True(result.IsFailure);
-            Assert.Equal("A user with this email address already exists.", result.Error);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("Email"));
+            Assert.Contains("A user with this email address already exists.", result.Errors["Email"]);
         }
 
         [Fact]
@@ -98,7 +102,7 @@ namespace UserManagementAPI.Tests.ServiceTests
 
             var result = await _service.GetUserByIdAsync(user.Id);
 
-            Assert.True(result.IsSuccess);
+            Assert.False(result.IsFailure);
             Assert.Equal(user.Name, result.Value!.Name);
         }
 
@@ -110,7 +114,9 @@ namespace UserManagementAPI.Tests.ServiceTests
             var result = await _service.GetUserByIdAsync(999);
 
             Assert.True(result.IsFailure);
-            Assert.Equal("User not found.", result.Error);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("Id"));
+            Assert.Contains("User not found.", result.Errors["Id"]);
         }
 
         [Fact]
@@ -136,9 +142,29 @@ namespace UserManagementAPI.Tests.ServiceTests
 
             var result = await _service.UpdateUserAsync(user.Id, updateDto);
 
-            Assert.True(result.IsSuccess);
+            Assert.False(result.IsFailure);
             Assert.Equal("Eve Updated", result.Value!.Name);
             Assert.Equal("eve.updated@example.com", result.Value.Email);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_Fails_When_IdNotFound()
+        {
+            var updateDto = new UpdateUserDto
+            {
+                Name = "Ghost",
+                Email = "ghost@example.com",
+                DateOfBirth = DateTime.UtcNow.AddYears(-20)
+            };
+
+            _repoMock.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((User?)null);
+
+            var result = await _service.UpdateUserAsync(999, updateDto);
+
+            Assert.True(result.IsFailure);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("Id"));
+            Assert.Contains("User not found.", result.Errors["Id"]);
         }
 
         [Fact]
@@ -164,7 +190,37 @@ namespace UserManagementAPI.Tests.ServiceTests
             var result = await _service.UpdateUserAsync(user.Id, updateDto);
 
             Assert.True(result.IsFailure);
-            Assert.Equal("A user with this email address already exists.", result.Error);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("Email"));
+            Assert.Contains("A user with this email address already exists.", result.Errors["Email"]);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_Fails_When_Underage()
+        {
+            var user = new User
+            {
+                Id = _nextId++,
+                Name = "Youngster",
+                Email = "youngster@example.com",
+                DateOfBirth = DateTime.UtcNow.AddYears(-19)
+            };
+            var updateDto = new UpdateUserDto
+            {
+                Name = "Youngster",
+                Email = "youngster@example.com",
+                DateOfBirth = DateTime.UtcNow.AddYears(-17) // Too young
+            };
+
+            _repoMock.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+            _repoMock.Setup(r => r.EmailExistsAsync(updateDto.Email, user.Id)).ReturnsAsync(false);
+
+            var result = await _service.UpdateUserAsync(user.Id, updateDto);
+
+            Assert.True(result.IsFailure);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("DateOfBirth"));
+            Assert.Contains("User must be at least 18 years of age.", result.Errors["DateOfBirth"]);
         }
 
         [Fact]
@@ -184,7 +240,7 @@ namespace UserManagementAPI.Tests.ServiceTests
 
             var result = await _service.DeleteUserAsync(user.Id);
 
-            Assert.True(result.IsSuccess);
+            Assert.False(result.IsFailure);
         }
 
         [Fact]
@@ -195,7 +251,9 @@ namespace UserManagementAPI.Tests.ServiceTests
             var result = await _service.DeleteUserAsync(999);
 
             Assert.True(result.IsFailure);
-            Assert.Equal("User not found.", result.Error);
+            Assert.NotNull(result.Errors);
+            Assert.True(result.Errors.ContainsKey("Id"));
+            Assert.Contains("User not found.", result.Errors["Id"]);
         }
 
         [Fact]

@@ -13,39 +13,36 @@ namespace UserManagementAPI.Controllers
     {
         private readonly IUserService _userService;
 
-        /// <summary>
-        /// Initializes a new instance of UserController.
-        /// </summary>
-        /// <param name="userService">The user service for handling business logic.</param>
         public UserController(IUserService userService)
         {
             _userService = userService;
         }
 
-        /// <summary>
-        /// Retrieves paginated users, or the first page of users (size 10) if pagination parameters are not provided.
-        /// Supports sorting by name, email, or age in ascending or descending order.
-        /// </summary>
-        /// <param name="page">The page number for pagination.</param>
-        /// <param name="pageSize">The number of users per page for pagination.</param>
-        /// <param name="sortBy">The property to sort the users by.</param>
-        /// <param name="sortOrder">The order of sorting (ascending or descending).</param>
-        /// <returns>A 200 OK response containing a list of users.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers([FromQuery] PaginationParamsDto pagenationParams)
         {
-            // Validate ModelState for DTO validation errors
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            var result = await _userService.GetUsersAsync(
-                pagenationParams.Page,
-                pagenationParams.PageSize,
-                pagenationParams.SortBy,
-                pagenationParams.SortOrder
-            );
+                var result = await _userService.GetUsersAsync(
+                    pagenationParams.Page,
+                    pagenationParams.PageSize,
+                    pagenationParams.SortBy,
+                    pagenationParams.SortOrder
+                );
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "An unexpected error occurred.",
+                    Detail = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -56,11 +53,22 @@ namespace UserManagementAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<UserResponseDto>> CreateUser(CreateUserDto dto)
         {
-            var result = await _userService.CreateUserAsync(dto);
-            if (result.IsFailure)
-                return BadRequest(new ProblemDetails { Detail = result.Error });
+            try
+            {
+                var result = await _userService.CreateUserAsync(dto);
+                if (result.IsFailure)
+                    return BadRequest(new ValidationProblemDetails(result.Errors));
 
-            return CreatedAtAction(nameof(GetUsers), result.Value);
+                return CreatedAtAction(nameof(GetUsers), result.Value);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "An unexpected error occurred.",
+                    Detail = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -71,11 +79,22 @@ namespace UserManagementAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponseDto>> GetUserById(int id)
         {
-            var result = await _userService.GetUserByIdAsync(id);
-            if (result.IsFailure)
-                return NotFound(new ProblemDetails { Detail = result.Error });
+            try
+            {
+                var result = await _userService.GetUserByIdAsync(id);
+                if (result.IsFailure)
+                    return NotFound(new ValidationProblemDetails(result.Errors));
 
-            return Ok(result.Value);
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "An unexpected error occurred.",
+                    Detail = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -86,11 +105,22 @@ namespace UserManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUser(int id)
         {
-            var result = await _userService.DeleteUserAsync(id);
-            if (result.IsFailure)
-                return NotFound(new ProblemDetails { Detail = result.Error });
+            try
+            {
+                var result = await _userService.DeleteUserAsync(id);
+                if (result.IsFailure)
+                    return NotFound(new ValidationProblemDetails(result.Errors));
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "An unexpected error occurred.",
+                    Detail = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -102,15 +132,26 @@ namespace UserManagementAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<UserResponseDto>> UpdateUser(int id, UpdateUserDto dto)
         {
-            var result = await _userService.UpdateUserAsync(id, dto);
-            if (result.IsFailure)
+            try
             {
-                if (result.Error == "User not found.")
-                    return NotFound(new ProblemDetails { Detail = result.Error });
-                return BadRequest(new ProblemDetails { Detail = result.Error });
-            }
+                var result = await _userService.UpdateUserAsync(id, dto);
+                if (result.IsFailure)
+                {
+                    if (result.Errors != null && result.Errors.ContainsKey("Id"))
+                        return NotFound(new ValidationProblemDetails(result.Errors));
+                    return BadRequest(new ValidationProblemDetails(result.Errors));
+                }
 
-            return Ok(result.Value);
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "An unexpected error occurred.",
+                    Detail = ex.Message
+                });
+            }
         }
     }
 }
