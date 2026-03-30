@@ -1,0 +1,7 @@
+<RunSettings>
+  <CoverletDataCollector>
+    <Exclude>
+      <Module>Microsoft.AspNetCore.OpenApi.Generated</Module>
+    </Exclude>
+  </CoverletDataCollector>
+</RunSettings>

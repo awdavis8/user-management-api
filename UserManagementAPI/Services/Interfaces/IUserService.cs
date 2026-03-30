@@ -8,11 +8,6 @@ namespace UserManagementAPI.Services
     /// </summary>
     public interface IUserService
     {
-        /// <summary>
-        /// Retrieves all users.
-        /// </summary>
-        /// <returns>A collection of UserResponseDto objects.</returns>
-        Task<IEnumerable<UserResponseDto>> GetAllUsersAsync();
 
         /// <summary>
         /// Retrieves a user by their unique identifier.

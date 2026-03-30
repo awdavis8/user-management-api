@@ -2,52 +2,81 @@ namespace UserManagementAPI.Models
 {
     /// <summary>
     /// Represents the outcome of an operation.
-    /// On failure, the error reason will instead be provided.
+    /// On failure, validation errors will be provided.
     /// </summary>
     public class Result
     {
-        /// <summary>Whether the operation succeeded.</summary>
-        public bool IsSuccess { get; }
+        /// <summary>
+        /// Indicates whether the operation failed.
+        /// </summary>
+        public bool IsFailure { get; set; }
 
-        /// <summary>Whether the operation failed.</summary>
-        public bool IsFailure => !IsSuccess;
+        /// <summary>
+        /// A dictionary of validation errors, where the key is the field name
+        /// and the value is an array of error messages for that field.
+        /// Null if the operation was successful.
+        /// </summary>
+        public Dictionary<string, string[]>? Errors { get; set; }
 
-        /// <summary>An error message describing what went wrong.</summary>
-        public string Error { get; }
-
-        protected Result(bool isSuccess, string error)
+        /// <summary>
+        /// Initializes a new instance of the Result class.
+        /// </summary>
+        /// <param name="isFailure">Whether the operation failed.</param>
+        /// <param name="errors">Validation errors, if any.</param>
+        protected Result(bool isFailure, Dictionary<string, string[]>? errors)
         {
-            IsSuccess = isSuccess;
-            Error = error;
+            IsFailure = isFailure;
+            Errors = errors;
         }
 
-        /// <summary>Creates a successful result.</summary>
-        public static Result Success() => new(true, string.Empty);
+        /// <summary>
+        /// Creates a successful result.
+        /// </summary>
+        public static Result Success() => new(false, null);
 
-        /// <summary>Creates a failed result with the given error message.</summary>
-        public static Result Failure(string error) => new(false, error);
+        /// <summary>
+        /// Creates a failed result with the given validation errors.
+        /// </summary>
+        /// <param name="errors">A dictionary of validation errors.</param>
+        public static Result Failure(Dictionary<string, string[]> errors)
+            => new(true, errors);
     }
 
     /// <summary>
     /// Represents the outcome of an operation that produces a value on success.
-    /// On failure, the error reason will instead be provided.
+    /// On failure, validation errors will be provided.
     /// </summary>
-    /// <typeparam name="T">The type of the value.</typeparam>
+    /// <typeparam name="T">The type of the value produced on success.</typeparam>
     public class Result<T> : Result
     {
-        /// <summary>The value produced by a successful operation.</summary>
+        /// <summary>
+        /// The value produced by a successful operation.
+        /// Null if the operation failed.
+        /// </summary>
         public T? Value { get; }
 
-        private Result(bool isSuccess, string error, T? value)
-            : base(isSuccess, error)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Result{T}"/> class.
+        /// </summary>
+        /// <param name="isFailure">Whether the operation failed.</param>
+        /// <param name="errors">Validation errors, if any.</param>
+        /// <param name="value">The value produced by the operation, if successful.</param>
+        private Result(bool isFailure, Dictionary<string, string[]>? errors, T? value)
+            : base(isFailure, errors)
         {
             Value = value;
         }
 
-        /// <summary>Creates a successful result containing value object.</summary>
-        public static Result<T> Success(T value) => new(true, string.Empty, value);
+        /// <summary>
+        /// Creates a successful result containing the specified value.
+        /// </summary>
+        /// <param name="value">The value produced by the operation.</param>
+        public static Result<T> Success(T value) => new(false, null, value);
 
-        /// <summary>Creates a failed result with the given error message.</summary>
-        public new static Result<T> Failure(string error) => new(false, error, default);
+        /// <summary>
+        /// Creates a failed result with the given validation errors.
+        /// </summary>
+        /// <param name="errors">A dictionary of validation errors.</param>
+        public new static Result<T> Failure(Dictionary<string, string[]> errors) => new(true, errors, default);
     }
 }

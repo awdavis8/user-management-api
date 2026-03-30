@@ -4,36 +4,36 @@ using UserManagementAPI.Data;
 using UserManagementAPI.DTOs;
 using UserManagementAPI.Mappings;
 using UserManagementAPI.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace UserManagementAPI.Services
 {
     /// <inheritdoc />
     public class UserService : IUserService
     {
-        private readonly AppDbContext _context;
+        private readonly IUserRepository _userRepository;
 
         /// <summary>
         /// Initializes a new instance of UserService.
         /// </summary>
-        /// <param name="context">The database context for user operations.</param>
-        public UserService(AppDbContext context)
+        /// <param name="userRepository">The repository for user operations.</param>
+        public UserService(IUserRepository userRepository)
         {
-            _context = context;
-        }
-
-        /// <inheritdoc />
-        public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync()
-        {
-            var users = await _context.Users.ToListAsync();
-            return UserMapper.ToResponseDtos(users);
+            _userRepository = userRepository;
         }
 
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> GetUserByIdAsync(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
             if (user is null)
-                return Result<UserResponseDto>.Failure("User not found.");
+            {
+                var errors = new Dictionary<string, string[]>
+                {
+                    { "Id", ["User not found."] }
+                };
+                return Result<UserResponseDto>.Failure(errors);
+            }
 
             return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
         }
@@ -41,16 +41,22 @@ namespace UserManagementAPI.Services
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto)
         {
+            var errors = new Dictionary<string, string[]>();
+
+            // Email uniqueness
+            if (await _userRepository.EmailExistsAsync(dto.Email))
+                errors["Email"] = ["A user with this email address already exists."];
+
+            // Age validation
             var age = GetAge(dto.DateOfBirth!.Value);
             if (age < 18)
-                return Result<UserResponseDto>.Failure("User must be at least 18 years of age.");
+                errors["DateOfBirth"] = ["User must be at least 18 years of age."];
 
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-                return Result<UserResponseDto>.Failure("A user with this email address already exists.");
+            if (errors.Count > 0)
+                return Result<UserResponseDto>.Failure(errors);
 
             var user = UserMapper.ToModel(dto);
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await _userRepository.AddAsync(user);
 
             return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
         }
@@ -58,34 +64,43 @@ namespace UserManagementAPI.Services
         /// <inheritdoc />
         public async Task<Result<UserResponseDto>> UpdateUserAsync(int id, UpdateUserDto dto)
         {
+            var errors = new Dictionary<string, string[]>();
+
+            // Email uniqueness
+            if (await _userRepository.EmailExistsAsync(dto.Email, id))
+                errors["Email"] = ["A user with this email address already exists."];
+
+            // Age validation
             var age = GetAge(dto.DateOfBirth!.Value);
             if (age < 18)
-                return Result<UserResponseDto>.Failure("User must be at least 18 years of age.");
+                errors["DateOfBirth"] = ["User must be at least 18 years of age."];
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
             if (user is null)
-                return Result<UserResponseDto>.Failure("User not found.");
+                errors["Id"] = ["User not found."];
 
-            // Check for email uniqueness (excluding current user)
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email && u.Id != id))
-                return Result<UserResponseDto>.Failure("A user with this email address already exists.");
+            if (errors.Count > 0)
+                return Result<UserResponseDto>.Failure(errors);
 
-            UserMapper.ApplyUpdate(dto, user);
+            UserMapper.ApplyUpdate(dto, user!);
 
-            await _context.SaveChangesAsync();
-
-            return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user));
+            return Result<UserResponseDto>.Success(UserMapper.ToResponseDto(user!));
         }
 
         /// <inheritdoc />
         public async Task<Result> DeleteUserAsync(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
             if (user is null)
-                return Result.Failure("User not found.");
+            {
+                var errors = new Dictionary<string, string[]>
+                {
+                    { "Id", ["User not found."] }
+                };
+                return Result.Failure(errors);
+            }
 
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
+            await _userRepository.RemoveAsync(user);
             return Result.Success();
         }
 
@@ -107,39 +122,7 @@ namespace UserManagementAPI.Services
         public async Task<IEnumerable<UserResponseDto>> GetUsersAsync(
             int? page, int? pageSize, string? sortBy, string? sortOrder)
         {
-            var usersQuery = _context.Users.AsQueryable();
-
-            // Sorting
-            if (!string.IsNullOrEmpty(sortBy))
-            {
-                var order = sortOrder?.ToLower() ?? "asc";
-                switch (sortBy.ToLower())
-                {
-                    case "email":
-                        usersQuery = order == "desc"
-                            ? usersQuery.OrderByDescending(u => u.Email)
-                            : usersQuery.OrderBy(u => u.Email);
-                        break;
-                    case "name":
-                        usersQuery = order == "desc"
-                            ? usersQuery.OrderByDescending(u => u.Name)
-                            : usersQuery.OrderBy(u => u.Name);
-                        break;
-                    case "age":
-                        usersQuery = order == "desc"
-                            ? usersQuery.OrderByDescending(u => u.DateOfBirth)
-                            : usersQuery.OrderBy(u => u.DateOfBirth);
-                        break;
-                }
-            }
-
-            // Pagination
-            if (page.HasValue && pageSize.HasValue)
-            {
-                usersQuery = usersQuery.Skip((page.Value - 1) * pageSize.Value).Take(pageSize.Value);
-            }
-
-            var users = await usersQuery.ToListAsync();
+            var users = await _userRepository.GetUsersAsync(page, pageSize, sortBy, sortOrder);
             return UserMapper.ToResponseDtos(users);
         }
     }
